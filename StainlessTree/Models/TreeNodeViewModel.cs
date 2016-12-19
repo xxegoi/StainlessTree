@@ -8,7 +8,7 @@ using Models;
 
 namespace StainlessTree.Models
 {
-    public class TreeNodeViewModel
+    public partial class TreeNodeViewModel
     {
         [Key]
         public int NodeId { get; set; }
@@ -22,24 +22,8 @@ namespace StainlessTree.Models
         [Required]
         public int Right { get; set; }
 
-        [DisplayName("上级节点")]
-        public TreeNodeViewModel ParentNode { get; set; }
+        public bool IsDeleted { get; set; }
 
-        public string ParentId { get; set; }
-
-        public TreeNodeViewModel() { }
-
-        public override string ToString()
-        {
-            return this.NodeName;
-        }
-
-        public TreeNodeViewModel(TreeNode model)
-        {
-            this.NodeId = model.Node_Id;
-            this.NodeName = model.Node_Name;
-            this.Left = model.Left;
-            this.Right = model.Right;
-        }
+        
     }
 }

@@ -7,16 +7,17 @@ using BLL;
 using Models;
 using StainlessTree.Models;
 using System.Net;
+using StainlessTree.Models.JsonModel;
 
 namespace StainlessTree.Controllers
 {
-    public class TreeController : Controller
+    public partial class TreeController : Controller
     {
         TreeNodeBLL db = new TreeNodeBLL();
         // GET: Tree
         public ActionResult Index()
         {
-            List<TreeNode> nlst = db.GetTreeNodes();
+            List<TreeNode> nlst = db.QueryAllTreeNodes();
 
             List<TreeNodeViewModel> viewList = new List<TreeNodeViewModel>();
 
@@ -51,7 +52,7 @@ namespace StainlessTree.Controllers
             return View();
         }
 
-        public ActionResult CreateChilNode(string id)
+        public ActionResult CreateChilNode(int id)
         {
 
             TreeNodeViewModel model = new TreeNodeViewModel();
@@ -62,18 +63,19 @@ namespace StainlessTree.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult CreateChilNode(TreeNodeViewModel model)
+        public ActionResult CreateChilNode([Bind(Include ="NodeName,ParentId")]TreeNodeViewModel model)
         {
             if (ModelState.IsValid)
             {
-                TreeNode parent = db.GetTreeNodes().Find(m => m.Node_Id.ToString() == model.ParentId);
+                TreeNode parent = db.QueryTreeNode(model.ParentId);
 
                 if (parent != null)
                 {
                     try
                     {
+                        TreeNode entry = model.ToEntry();
 
-                        db.AddNode(model.NodeName, parent);
+                        db.Add(parent.Node_Id, entry);
 
                         return RedirectToAction("Index");
                     }
@@ -94,16 +96,9 @@ namespace StainlessTree.Controllers
         {
             if (ModelState.IsValid)
             {
-                if (parentId == -1)
-                {
-                    db.AddNode(model.NodeName);
-                }
-                else
-                {
-                    TreeNode parent = db.GetTreeNodes().Find(m => m.Node_Id == parentId);
+                TreeNode entry = model.ToEntry();
 
-                    db.AddNode(model.NodeName, parent);
-                }
+                db.Add(parentId, entry);
 
                 return RedirectToAction("Index");
             }
@@ -118,14 +113,13 @@ namespace StainlessTree.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            TreeNode node = db.GetById(id);
+
+            TreeNode node = db.QueryTreeNode((int)id);
 
             if (node == null)
             {
                 return HttpNotFound();
             }
-
-
 
             return View(new TreeNodeViewModel(node));
         }
@@ -134,14 +128,76 @@ namespace StainlessTree.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int? id)
         {
-            TreeNode model = db.GetById(id);
+            TreeNode model = db.QueryTreeNode((int)id);
 
             if (model != null)
             {
-                db.DeleteNode(model);
+                db.DeleteById((int)id);
             }
 
             return RedirectToAction("Index");
+        }
+
+
+        public ActionResult Edit(int id)
+        {
+            TreeNodeViewModel model =new TreeNodeViewModel( db.QueryTreeNode(id));
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Edit(TreeNodeViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                TreeNode entry = db.QueryTreeNode(model.NodeId);
+
+                entry.Node_Name = model.NodeName;
+
+                db.Update(entry);
+
+                return RedirectToAction("Index");
+            }
+
+            return View(model);
+        }
+
+        public JsonResult GetChildrenTreeNodes(int? id)
+        {
+            List<TreeNodeJson> jlst = new List<TreeNodeJson>();
+            List<TreeNode> nlst;
+
+            if (id != null)
+            {
+                nlst = db.QueryChildrenNodes((int)id);
+            }
+            else
+            {
+                nlst = db.QueryAllTreeNodes();
+            }
+
+            nlst.ForEach(m => jlst.Add(GetTreeNodeJson(m)));
+
+            return Json(jlst, JsonRequestBehavior.AllowGet);
+        }
+
+        private TreeNodeJson GetTreeNodeJson(TreeNode node)
+        {
+            TreeNodeJson result = new TreeNodeJson(node);
+
+            List<TreeNode> nlst = db.QueryChildrenNodes(result.id);
+
+            nlst.ForEach(m => result.children.Add(new TreeNodeJson(m)));
+
+            return result;
+        }
+
+        public ActionResult MenuTree()
+        {
+
+            return View();
         }
     }
 }

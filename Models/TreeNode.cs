@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Data.Entity;
 
 
 namespace Models
@@ -22,6 +23,15 @@ namespace Models
 
         [Required]
         public int Right { get; set; }
+
+        [Required]
+        public bool IsDeleted { get; set; }
     }
 
+    public partial class TreeNodeContext : DbContext
+    {
+        public TreeNodeContext() : base("Tree") { }
+
+        public DbSet<TreeNode> TreeNodes { get; set; }
+    }
 }

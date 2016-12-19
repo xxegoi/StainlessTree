@@ -4,3 +4,52 @@
     ViewBag.Title = "Index";
 }
 
+<h2>Index</h2>
+
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+<table class="table">
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.NodeName)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Left)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Right)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.ParentId)
+        </th>
+        <th></th>
+    </tr>
+
+@foreach (var item in Model) {
+    <tr>
+        <td>
+            @Html.DisplayFor(modelItem => item.NodeName)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.Left)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.Right)
+        </td>
+        <td>
+            @Html.DisplayFor(modelItem => item.ParentNode.NodeName)
+        </td>
+        <td>
+            @Html.ActionLink("编辑", "Edit", new { id=item.NodeId }) 
+            @Html.ActionLink("详情", "Details", new { id=item.NodeId }) 
+            @if(item.ParentNode!=null){
+                @Html.ActionLink("删除", "Delete", new { id = item.NodeId })
+            }
+            
+            @Html.ActionLink("添加子节点", "CreateChilNode",new { id=item.NodeId})
+        </td>
+    </tr>
+}
+
+</table>

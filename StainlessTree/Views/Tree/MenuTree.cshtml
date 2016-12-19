@@ -1,0 +1,17 @@
+﻿
+@{
+    ViewBag.Title = "MenuTree";
+}
+
+
+
+<h2>MenuTree</h2>
+
+<ul id="tt" class="easyui-tree tree"></ul>
+
+<script type="text/javascript">
+    $('#tt').tree({
+        url: '/Tree/GetChildrenTreeNodes'
+    });
+</script>
+
