@@ -8,6 +8,7 @@ using System.Data.SqlClient;
 using Models;
 using System.Data.Entity.Infrastructure;
 using System.Reflection;
+using System.Linq.Expressions;
 
 namespace DAL
 {
@@ -206,11 +207,32 @@ namespace DAL
         #region 获取所有子节点
         public List<TreeNode> QueryChildrenNodes(int id)
         {
-            TreeNode parent = db.TreeNodes.Where(m => m.Node_Id == id).FirstOrDefault();
+            List<TreeNode> nlst = db.TreeNodes.Where(m => !m.IsDeleted).ToList();
+
+            TreeNode parent = nlst.FirstOrDefault(m => m.Node_Id == id);
+
+            int lft = parent.Left;
+            int rgt = parent.Right;
 
             int layer = db.TreeNodes.Count(m => m.Left <= parent.Left && m.Right >= parent.Right);
 
-            return db.TreeNodes.Where(m => db.TreeNodes.Count(x => x.Left <= m.Left && x.Right >= m.Right) == layer + 1).ToList();
+            List<TreeNode> childrens = nlst.Where(m => m.Left > lft && m.Right < rgt).ToList();
+
+            List<TreeNode> result = new List<TreeNode>();
+
+            foreach(TreeNode item in childrens)
+            {
+                int clayer = nlst.Count(m => m.Left <= item.Left && m.Right >= item.Right);
+
+                if (clayer == layer + 1)
+                {
+                    result.Add(item);
+                }
+            }
+
+            return result;
+
+            //return db.TreeNodes.Where(m => db.TreeNodes.Count(x => x.Left <= lft && x.Right >= rgt) == layer + 1).ToList();
         } 
         #endregion
 
@@ -228,10 +250,17 @@ namespace DAL
         #region 获取父节点
         public TreeNode QueryParent(TreeNode model)
         {
-            return db.TreeNodes.Where(m => m.Left < model.Left && m.Right > model.Right).FirstOrDefault();
+            foreach(TreeNode item in db.TreeNodes)
+            {
+                if (item.Left < model.Left && item.Right> model.Right)
+                {
+                    return item;
+                }
+            }
+
+            return null;
+            //return db.TreeNodes.Where(m => m.Left < model.Left && m.Right > model.Right).FirstOrDefault();
         }
-
-
         #endregion
 
 
@@ -240,9 +269,43 @@ namespace DAL
         {
             return db.TreeNodes.Where(m => m.Node_Id == id).FirstOrDefault();
 
+        }
+        #endregion
+
+        #region 获取所有直系子节点，隔代不获取
+        public List<TreeNode> QueryChildrenNode(TreeNode model)
+        {
+            int lft = model.Left + 1;
+            int rgt = model.Right - 1;
+
+            var childrens = db.TreeNodes.Where(m => m.Left >= lft && m.Right <= rgt).ToList();
+
+            List<TreeNode> result = null;
+
+            if (childrens.Count > 0)
+            {
+                result = new List<TreeNode>();
+
+                foreach (TreeNode item in childrens)
+                {
+                    if (item.Left == lft)
+                    {
+                        result.Add(item);
+                        lft = item.Right + 1;
+                    }
+                }
+            }
+
+            return result;
         } 
         #endregion
 
+        #region 根据条件获取节点
+        public List<TreeNode> GetTreeNodesByCodition(Expression<Func<TreeNode, bool>> condition)
+        {
+            return db.TreeNodes.Where(condition).ToList();
+        } 
+        #endregion
 
         public void Dispose()
         {

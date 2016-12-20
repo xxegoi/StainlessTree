@@ -42,7 +42,7 @@
         </td>
         <td>
             @Html.ActionLink("编辑", "Edit", new { id=item.NodeId }) 
-            @Html.ActionLink("详情", "Details", new { id=item.NodeId }) 
+            @Html.ActionLink("详情", "MenuTree", new { id=item.NodeId }) 
             @if(item.ParentNode!=null){
                 @Html.ActionLink("删除", "Delete", new { id = item.NodeId })
             }

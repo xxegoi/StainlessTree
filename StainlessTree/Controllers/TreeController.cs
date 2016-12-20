@@ -47,11 +47,31 @@ namespace StainlessTree.Controllers
             return View(viewList);
         }
 
+        #region 添加根节点
         public ActionResult Create()
         {
             return View();
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Create([Bind(Include = "NodeName,Left,Right")]TreeNodeViewModel model, int parentId = -1)
+        {
+            if (ModelState.IsValid)
+            {
+                TreeNode entry = model.ToEntry();
+
+                db.Add(parentId, entry);
+
+                return RedirectToAction("Index");
+            }
+
+            return View(model);
+
+        }
+        #endregion
+
+        #region 添加子节点
         public ActionResult CreateChilNode(int id)
         {
 
@@ -63,7 +83,7 @@ namespace StainlessTree.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult CreateChilNode([Bind(Include ="NodeName,ParentId")]TreeNodeViewModel model)
+        public ActionResult CreateChilNode([Bind(Include = "NodeName,ParentId")]TreeNodeViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -89,24 +109,9 @@ namespace StainlessTree.Controllers
 
             return View(model);
         }
+        #endregion
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "NodeName,Left,Right")]TreeNodeViewModel model, int parentId = -1)
-        {
-            if (ModelState.IsValid)
-            {
-                TreeNode entry = model.ToEntry();
-
-                db.Add(parentId, entry);
-
-                return RedirectToAction("Index");
-            }
-
-            return View(model);
-
-        }
-
+        #region 删除节点及其所有后代节点
         public ActionResult Delete(int? id)
         {
             if (id == null)
@@ -124,7 +129,7 @@ namespace StainlessTree.Controllers
             return View(new TreeNodeViewModel(node));
         }
 
-        [HttpPost,ActionName("Delete")]
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int? id)
         {
@@ -137,11 +142,12 @@ namespace StainlessTree.Controllers
 
             return RedirectToAction("Index");
         }
+        #endregion
 
-
+        #region 修改节点名称
         public ActionResult Edit(int id)
         {
-            TreeNodeViewModel model =new TreeNodeViewModel( db.QueryTreeNode(id));
+            TreeNodeViewModel model = new TreeNodeViewModel(db.QueryTreeNode(id));
 
             return View(model);
         }
@@ -162,41 +168,139 @@ namespace StainlessTree.Controllers
             }
 
             return View(model);
-        }
+        } 
+        #endregion
 
-        public JsonResult GetChildrenTreeNodes(int? id)
+        #region 获取节点及所有后代节点
+        public JsonResult GetTree(int? id)
         {
-            List<TreeNodeJson> jlst = new List<TreeNodeJson>();
-            List<TreeNode> nlst;
+            #region 注释不用
+            //List<TreeNodeJson> jlst = new List<TreeNodeJson>();
+            //List<TreeNode> nlst;
 
+            //if (id != null)
+            //{
+            //    nlst = db.QueryChildrenNodes((int)id);
+            //}
+            //else
+            //{
+            //    nlst = db.QueryAllTreeNodes();
+            //}
+
+            //nlst.ForEach(m => {
+
+            //    bool flag = false;
+
+            //    jlst.ForEach(j =>
+            //    {
+
+            //        if (j.children.Count(k => k.id == m.Node_Id) > 0)
+            //        {
+            //            flag = true;
+            //        }
+
+            //    });
+            //    if (!flag)
+            //    {
+
+            //        jlst.Add(GetTreeNodeJson(m));
+
+            //    }
+
+            //}); 
+            #endregion
+            List<TreeNode> nlst = db.QueryAllTreeNodes();
+            //如果传入ID值为空，测取根节点
+            TreeNode root;
             if (id != null)
             {
-                nlst = db.QueryChildrenNodes((int)id);
+                root = nlst.FirstOrDefault(m => m.Node_Id == id);
             }
             else
             {
-                nlst = db.QueryAllTreeNodes();
+                return GetLevel1Tree();
             }
 
-            nlst.ForEach(m => jlst.Add(GetTreeNodeJson(m)));
+            var clist = db.QueryChildrenNode(root);
 
-            return Json(jlst, JsonRequestBehavior.AllowGet);
+            List<TreeNodeJson> tree = null;
+
+            if (clist.Count > 0)
+            {
+                tree = new List<TreeNodeJson>();
+
+                foreach(TreeNode item in clist)
+                {
+                    tree.Add(new TreeNodeJson(item));
+                }
+            }
+
+
+            return Json(tree, JsonRequestBehavior.AllowGet);
         }
+        #endregion
 
-        private TreeNodeJson GetTreeNodeJson(TreeNode node)
+        #region 递归所有子节点，并转为Json格式
+        private TreeNodeJson GetJsonTree(TreeNode entry)
         {
-            TreeNodeJson result = new TreeNodeJson(node);
+            TreeNodeJson result = new TreeNodeJson(entry);
 
-            List<TreeNode> nlst = db.QueryChildrenNodes(result.id);
+            int lft = entry.Left + 1;
+            int rgt = entry.Right - 1;
+            //取得当前节点下所有子孙节点
+            var clist = db.GetTreeNodesByCodition(m => m.Left >= lft && m.Right <= rgt && !m.IsDeleted);
 
-            nlst.ForEach(m => result.children.Add(new TreeNodeJson(m)));
+            
+            if (clist.Count > 0)
+            {
+                result.children = new List<TreeNodeJson>();
+
+                foreach (var item in clist)
+                {
+                    //判断该节点是否是直接下属子节点，是则添加到子节点列表中，孙节点不添加
+                    if (item.Left == lft)
+                    {
+                        result.children.Add(GetJsonTree(item));
+                        lft = item.Right + 1;
+                    }
+
+                }
+            }
 
             return result;
+        } 
+        #endregion
+
+        public JsonResult GetLevel1Tree()
+        {
+            List<TreeNode> nlst = db.QueryAllTreeNodes();
+
+            TreeNode root= nlst.FirstOrDefault(m => m.Right == nlst.Max(n => n.Right) && !m.IsDeleted);
+            TreeNodeJson jroot = new TreeNodeJson(root);
+
+            var clist = db.QueryChildrenNode(root);
+
+            if (clist.Count > 0)
+            {
+                jroot.children = new List<TreeNodeJson>();
+                foreach(TreeNode item in clist)
+                {
+                    jroot.children.Add(new TreeNodeJson(item));
+                }
+            }
+
+            List<TreeNodeJson> tree = new List<TreeNodeJson>();
+            tree.Add(jroot);
+
+            return Json(tree, JsonRequestBehavior.AllowGet);
         }
 
-        public ActionResult MenuTree()
+        public ActionResult MenuTree(int? id)
         {
-
+            if (id != null)
+            {
+                ViewBag.NodeId = id;
+            }
             return View();
         }
     }

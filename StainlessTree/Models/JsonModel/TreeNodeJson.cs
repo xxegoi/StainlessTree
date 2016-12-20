@@ -19,8 +19,7 @@ namespace StainlessTree.Models.JsonModel
         {
             this.id = entry.Node_Id;
             this.text = entry.Node_Name;
-            this.state = "open";
-            this.children = new List<TreeNodeJson>();
+            this.state = "closed";
         }
     }
 }

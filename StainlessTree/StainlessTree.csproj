@@ -535,11 +535,11 @@
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Tree\Create.cshtml" />
-    <Content Include="Views\Tree\CreateChilNode.cshtml" />
     <Content Include="Views\Tree\Delete.cshtml" />
     <Content Include="Views\Tree\Index.cshtml" />
     <Content Include="Views\Tree\Edit.cshtml" />
     <Content Include="Views\Tree\MenuTree.cshtml" />
+    <Content Include="Views\Tree\CreateChilNode.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

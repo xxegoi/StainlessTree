@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using DAL;
 using Models;
+using System.Linq.Expressions;
 
 namespace BLL
 {
@@ -167,6 +168,13 @@ namespace BLL
         }
         #endregion
 
+        #region 获取所有直系子节点，隔代不获取
+        public List<TreeNode> QueryChildrenNode(TreeNode model)
+        {
+            return dal.QueryChildrenNode(model);
+        }
+        #endregion
+
 
         #region 获取所有子节点
         public List<TreeNode> QueryChildrenNodes(int id)
@@ -200,5 +208,18 @@ namespace BLL
 
         }
         #endregion
+
+        #region 根据条件获取节点
+        /// <summary>
+        /// 根据条件获取节点
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        public List<TreeNode> GetTreeNodesByCodition(Expression<Func<TreeNode, bool>> condition)
+        {
+            return dal.GetTreeNodesByCodition(condition);
+        } 
+        #endregion
+
     }
 }
